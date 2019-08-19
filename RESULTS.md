@@ -8,7 +8,9 @@ Project has been built using Spark 2.4.3 and Scala 2.11. The packaging and confi
 
 - sbt assembly
 
-## Submitting to Spark
+## Processing & Analytical
+
+### Submitting to Spark
 
 In order to run the application, I used the following command.
 
@@ -24,7 +26,7 @@ The application takes a number of parameters:
 - _-u_ or _-UserStat_   To select which duration statistic(s) to use when computing top users, supported values are minimum, maximum, average, total and count. They can also be combined in CSV format.
 - _-n_ or _-numUsers_   To select the number of top users to list, which defaults to 10.
 
-## Answers for processing and analytical questions
+### Answers for processing and analytical questions
 
 1. Sessionized data will be stored in output after running command.
 
@@ -34,7 +36,7 @@ The application takes a number of parameters:
 
 4. Most engaged users, depending on how we determine engagement (see full output below). Based on README description of longest sessions, "52.74.219.71", "119.81.61.166" and "106.186.23.95" are equal in first place with sessions of 2069 seconds.
 
-## Full output from analysis run
+### Full output from analysis run
 
 ```bash
 19/08/17 14:36:06 INFO TeVLog: minimum duration: 0.0
@@ -97,4 +99,46 @@ The application takes a number of parameters:
 19/08/17 14:36:06 INFO TeVLog: 54.251.151.39 has count session duration of 10.0
 19/08/17 14:36:06 INFO TeVLog: 185.20.4.220 has count session duration of 10.0
 19/08/17 14:36:06 INFO TeVLog: 54.244.52.204 has count session duration of 10.0
+```
+## Machine Learning
+
+### Predicting expected load
+
+In order to predict load in the next minute, I used Spark's GeneralizedLinearRegression model and trained in on
+counts of requests and unique users. For each minute, I've used the previous counts for the past 5 minutes as features.
+In order to keep closer to what I expect production processes to be, I split the training and predicting in two phases
+and stored/load the model in between. This allows training the model once and using it to predict data multiple times.
+Production environments would normally train models at much slower rate than predictions, plus it allows to use the
+newly trained model only if it performed well enough.
+
+#### Running
+
+In order to train the model, I used the following command.
+
+- $SPARK_HOME/bin/spark-submit --class net.tev.ml.LoadPrediction --master local[4] target/scala-2.11/Weblog\ Challenge-assembly-1.0.jar -n TeVLogAnalysis -l data/2015_07_22_mktplace_shop_web_log_sample.log.gz -m target/model -o train
+
+In order to predict using the model, I used the following command.
+
+- $SPARK_HOME/bin/spark-submit --class net.tev.ml.LoadPrediction --master local[4] target/scala-2.11/Weblog\ Challenge-assembly-1.0.jar -n TeVLogAnalysis -l data/2015_07_22_mktplace_shop_web_log_sample.log.gz -m target/model -o predict
+
+The application takes a number of parameters:
+
+- _-n_ or _-name_   For the application name to use
+- _-l_ or _-logs_ To specify where to read logs from
+- _-m_ or _-model_ To specify where to store or load the model
+- _-o_ or _-operation_    To specify whether to train the model or use it to predict (using a previously trained model)
+- _-n_ or _-numDataPoints_   To select the number of datapoint (minutes to look back) to use for training and predicting (must match)
+
+#### Results
+
+Sample run produced results with low root mean square error (see below). Model saved under models/load-prediction.
+
+```bash
+19/08/18 17:31:28 INFO TeVLog: Generated model with rmse of 8.033577539856364E-12
+```
+
+Using this model to predict the amount of requests in the next minute would be around 2500.
+
+```bash
+19/08/18 17:33:32 INFO TeVLog: Predicting next minute will receive 2464.9999999999973 requests
 ```

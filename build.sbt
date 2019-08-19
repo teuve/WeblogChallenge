@@ -8,6 +8,7 @@ scalaVersion := "2.11.12"
 parallelExecution := false
 
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.3" % "provided"
+libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.4.3" % "provided"
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.7.1"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
 resolvers += Resolver.mavenLocal
